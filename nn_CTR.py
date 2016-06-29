@@ -13,6 +13,7 @@ from StringIO import StringIO
 from sklearn.preprocessing import OneHotEncoder
 import tensorflow as tf	
 from sklearn.metrics import roc_curve, auc, roc_auc_score
+import re
 # import pdb
 
 config = ConfigParser.ConfigParser()
@@ -40,16 +41,21 @@ def feature_matrix(filename, headers_CTR, feature_dtype, useful_features):
 			out_table = {}
 			if len(row) == header_size and row[58] != 'None' and row[36] == 'cpc':
 				for i in range(header_size):
-					if useful_features[i] != '0':                                       
-						if feature_dtype[i] == 'int':
-							ctr_table[headers_CTR[i]] = int(row[i])
-							out_table[headers_CTR[i]] = int(row[i])
-						elif feature_dtype[i] == 'float':
-							ctr_table[headers_CTR[i]] = float(row[i])
-							out_table[headers_CTR[i]] = float(row[i])
-						else: 	
-							ctr_table[headers_CTR[i]+'_'+row[i]] = 1.0
-							out_table[headers_CTR[i]] = row[i]
+					if useful_features[i] != '0':
+						if useful_features[i] == 'J':
+							app_cat = re.split('-|#', row[i])
+							ctr_table[headers_CTR[i]+'_'+app_cat[0]] = 1.0
+							out_table[headers_CTR[i]] = app_cat[0]
+						else:                                       
+							if feature_dtype[i] == 'int':
+								ctr_table[headers_CTR[i]] = int(row[i])
+								out_table[headers_CTR[i]] = int(row[i])
+							elif feature_dtype[i] == 'float':
+								ctr_table[headers_CTR[i]] = float(row[i])
+								out_table[headers_CTR[i]] = float(row[i])
+							else: 	
+								ctr_table[headers_CTR[i]+'_'+row[i]] = 1.0
+								out_table[headers_CTR[i]] = row[i]
 				ctr_dict.append(ctr_table)
 				if row[59] == 'None':
 					y_h.append(0.0)
@@ -73,8 +79,8 @@ def feature_matrix(filename, headers_CTR, feature_dtype, useful_features):
 	return x_h, y_h, out_dict
 
 
-x_train, y_train, train_dict = feature_matrix('win_clk_data_2016062400.csv', headers_CTR, feature_dtype, useful_features)
-x_test, y_test, test_dict = feature_matrix('csv_sample_2016060602.csv', headers_CTR, feature_dtype, useful_features)
+x_train, y_train, train_dict = feature_matrix('/home/nikhil/win_clk_data_2016062400.csv', headers_CTR, feature_dtype, useful_features)
+x_test, y_test, test_dict = feature_matrix('/home/nikhil/csv_sample_2016060602.csv', headers_CTR, feature_dtype, useful_features)
 
 
 def dict_csv(output_dict, filename):
@@ -84,8 +90,8 @@ def dict_csv(output_dict, filename):
         dict_writer.writeheader()
         dict_writer.writerows(output_dict)
 
-dict_csv(train_dict, 'train_feature.csv')
-dict_csv(test_dict, 'test_feature.csv')
+dict_csv(train_dict, '/home/nikhil/train_feature.csv')
+dict_csv(test_dict, '/home/nikhil/test_feature.csv')
 
 # Parameters
 learning_rate = 0.001
@@ -154,7 +160,7 @@ with tf.Session() as sess:
 
     y_pred_train = out_pred.eval({x: x_train, y: y_train})
     y_pred_test = out_pred.eval({x: x_test, y: y_test})
-    np.savetxt("foo.csv", y_pred_train, delimiter=",")
-    np.savetxt("foo1.csv", y_pred_test, delimiter=",")
+    np.savetxt("/home/nikhil/foo.csv", y_pred_train, delimiter=",")
+    np.savetxt("/home/nikhil/foo1.csv", y_pred_test, delimiter=",")
     print "train_roc", roc_auc_score(y_train, y_pred_train)
     print "test_roc", roc_auc_score(y_test, y_pred_test)
