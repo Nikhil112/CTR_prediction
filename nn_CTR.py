@@ -95,12 +95,16 @@ useful_features = useful_feature.split(',')
 
 def hash_array(feature_dict, feature_num):
 	# print feature_dict[0]
-	hasher = FeatureHasher(n_features=feature_num, non_negative=True, input_type='dict')
-	X_new = hasher.fit_transform(feature_dict)
-	x_h = X_new.toarray()
-	# vec = DictVectorizer()
-	# x_h = vec.fit_transform(feature_dict).toarray()
-	# print feature_name, x_h.shape, type(x_h)
+	if feature_num == 1:
+		x_new = np.asarray(feature_dict)
+		x_h = x_new.reshape(len(feature_dict), 1)
+	else:
+		hasher = FeatureHasher(n_features=feature_num, non_negative=True, input_type='dict')
+		X_new = hasher.fit_transform(feature_dict)
+		x_h = X_new.toarray()
+		# vec = DictVectorizer()
+		# x_h = vec.fit_transform(feature_dict).toarray()
+		# print x_h.shape, type(x_h)
 	return x_h
 
 def feature_matrix(filename, headers_CTR, feature_dtype, useful_features, i, feature_num):	
@@ -120,9 +124,12 @@ def feature_matrix(filename, headers_CTR, feature_dtype, useful_features, i, fea
 			else:
 				for row in ctr_data:
 					if len(row) == 61 and row[58] != 'None' and row[36] == 'cpc':
-						ctr_table = {}
-						ctr_table[headers_CTR[i]+'_'+row[i]] = 1.0
-						ctr_dict.append(ctr_table)
+						if feature_dtype[i] == 'float':
+							ctr_dict.append(float(row[i]))
+						else:
+							ctr_table = {}
+							ctr_table[headers_CTR[i]+'_'+row[i]] = 1.0
+							ctr_dict.append(ctr_table)
 				x_h = hash_array(ctr_dict, feature_num)
 					
 	return x_h
@@ -153,28 +160,30 @@ def combine_data(filename, headers_CTR, feature_dtype, useful_features):
 	con_type = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 13, 3)
 	device_type = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 14, 5)
 	position = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 18, 10)
+	date = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 26, 7)
 	device_js = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 29, 2)
 	dsp_id = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 32, 7)
 	adv_id = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 33, 25)
 	campaign_id = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 34, 50)
-	creative_id = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 35, 200)
+	# creative_id = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 35, 200)
+	bid_floor = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 39, 1)
 	# feature_matrix('CTR_test.csv', headers_CTR, feature_dtype, useful_features)
 
 	x_train = np.concatenate((country, exchange, os_id, os_version, traffic, publisher, bundle_id, app_cat, 
-				con_type, device_type, position, device_js, dsp_id, adv_id, campaign_id, creative_id), axis=1)
+				con_type, device_type, position, date, device_js, dsp_id, adv_id, campaign_id, bid_floor), axis=1)
 
 	return x_train
 
-x_train = combine_data('/home/nikhil/win_clk_data_2016062400.csv', headers_CTR, feature_dtype, useful_features)
-y_train = y_labels('/home/nikhil/win_clk_data_2016062400.csv', x_train.shape[0])
-x_test = combine_data('/home/nikhil/csv_sample_2016060602.csv', headers_CTR, feature_dtype, useful_features)
-y_test = y_labels('/home/nikhil/csv_sample_2016060602.csv', x_test.shape[0])
-
+x_train = combine_data('/home/nikhil/train_day.csv', headers_CTR, feature_dtype, useful_features)
+y_train = y_labels('/home/nikhil/train_day.csv', x_train.shape[0])
+x_test = combine_data('/home/nikhil/test_day.csv', headers_CTR, feature_dtype, useful_features)
+y_test = y_labels('/home/nikhil/test_day.csv', x_test.shape[0])
+print x_train.shape, y_train.shape, x_test.shape, y_test.shape
 # Parameters
-learning_rate = 0.01
-training_epochs = 500
+learning_rate = 0.001
+training_epochs = 200
 batch_size = 500
-display_step = 50
+display_step = 20
 num_example = x_train.shape[0]
 # examples_to_show = 10
 
@@ -201,13 +210,17 @@ weights2 = tf.Variable(tf.random_normal([n_hidden, n_classes]))
 biases1 = tf.Variable(tf.random_normal([n_hidden]))
 biases2 = tf.Variable(tf.random_normal([n_classes]))
 
+weights = tf.Variable(tf.random_normal([n_input, n_classes]))
+biases = tf.Variable(tf.random_normal([n_classes]))
+pred = tf.add(tf.matmul(x, weights), biases)
+
 # pred = tf.sigmoid(tf.matmul(tf.nn.sigmoid(tf.matmul(x, weights1) + biases1), weights2) + biases2)
-pred = tf.add(tf.matmul(tf.nn.relu(tf.matmul(x, weights1) + biases1), weights2), biases2)
+# pred = tf.add(tf.matmul(tf.nn.relu(tf.matmul(x, weights1) + biases1), weights2), biases2)
 out_pred = tf.sigmoid(pred)
 # Define loss and optimizer
 # cost = tf.reduce_mean(tf.nn.l2_loss((pred-y)))
 cost = tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(pred, y))
-optimizer = tf.train.FtrlOptimizer(learning_rate=learning_rate, l1_regularization_strength=0.001).minimize(cost)
+optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
 # Initializing the variables
 init = tf.initialize_all_variables()
