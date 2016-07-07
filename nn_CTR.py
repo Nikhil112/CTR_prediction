@@ -29,70 +29,6 @@ useful_features = useful_feature.split(',')
 # np.set_printoptions(threshold='nan')
 
 
-# def feature_matrix(filename, headers_CTR, feature_dtype, useful_features):
-# 	ctr_dict = []
-# 	out_dict = []
-# 	y_h = []
-# 	header_size =  len(headers_CTR)
-# 	with open(filename, 'rb') as csvfile:
-# 		ctr_data = csv.reader(csvfile)
-# 		for row in ctr_data:
-# 			ctr_table = {}
-# 			out_table = {}
-# 			if len(row) == header_size and row[58] != 'None' and row[36] == 'cpc':
-# 				for i in range(header_size):
-# 					if useful_features[i] != '0':
-# 						if useful_features[i] == 'J':
-# 							app_cat = re.split('-|#', row[i])
-# 							ctr_table[headers_CTR[i]+'_'+app_cat[0]] = 1.0
-# 							out_table[headers_CTR[i]] = app_cat[0]
-# 						else:                                       
-# 							if feature_dtype[i] == 'int':
-# 								ctr_table[headers_CTR[i]] = int(row[i])
-# 								out_table[headers_CTR[i]] = int(row[i])
-# 							elif feature_dtype[i] == 'float':
-# 								ctr_table[headers_CTR[i]] = float(row[i])
-# 								out_table[headers_CTR[i]] = float(row[i])
-# 							else: 	
-# 								ctr_table[headers_CTR[i]+'_'+row[i]] = 1.0
-# 								out_table[headers_CTR[i]] = row[i]
-# 				ctr_dict.append(ctr_table)
-# 				if row[59] == 'None':
-# 					y_h.append(0.0)
-# 					out_table[headers_CTR[59]] = 0.0
-# 				else:
-# 					y_h.append(1.0)
-# 					out_table[headers_CTR[59]] = 1.0
-# 				out_dict.append(out_table)
-
-		
-# 	# print len(ctr_dict)
-# 	# print ctr_dict[0]
-# 	hasher = FeatureHasher(n_features=2000, non_negative=True, input_type='dict')
-# 	X_new = hasher.fit_transform(ctr_dict)
-# 	x_h = X_new.toarray()
-# 	y_h = np.asarray(y_h)
-# 	print x_h.shape
-# 	num_x = x_h.shape[0]
-# 	y_h = y_h.reshape(num_x,1)
-# 	print y_h.shape
-# 	return x_h, y_h, out_dict
-
-
-# x_train, y_train, train_dict = feature_matrix('/home/nikhil/win_clk_data_2016062400.csv', headers_CTR, feature_dtype, useful_features)
-# x_test, y_test, test_dict = feature_matrix('/home/nikhil/csv_sample_2016060602.csv', headers_CTR, feature_dtype, useful_features)
-
-
-# def dict_csv(output_dict, filename):
-#     keys = output_dict[0].keys()
-#     with open(filename, 'wb') as output_file:
-#         dict_writer = csv.DictWriter(output_file, keys)
-#         dict_writer.writeheader()
-#         dict_writer.writerows(output_dict)
-
-# dict_csv(train_dict, '/home/nikhil/train_feature.csv')
-# dict_csv(test_dict, '/home/nikhil/test_feature.csv')
-
 def hash_array(feature_dict, feature_num):
 	# print feature_dict[0]
 	if feature_num == 1:
@@ -185,11 +121,11 @@ training_epochs = 200
 batch_size = 500
 display_step = 20
 num_example = x_train.shape[0]
-# examples_to_show = 10
 
-n_hidden = 2
+# different layer nodes
+n_hidden = 10 #1 hidden layer with 10 nodes
 n_input = x_train.shape[1] 
-n_classes = 1
+n_classes = 1 #output layer with one node 
 
 def data_next_batch(batch_size, index):
 	start = index*batch_size
@@ -210,15 +146,11 @@ weights2 = tf.Variable(tf.random_normal([n_hidden, n_classes]))
 biases1 = tf.Variable(tf.random_normal([n_hidden]))
 biases2 = tf.Variable(tf.random_normal([n_classes]))
 
-weights = tf.Variable(tf.random_normal([n_input, n_classes]))
-biases = tf.Variable(tf.random_normal([n_classes]))
-pred = tf.add(tf.matmul(x, weights), biases)
 
-# pred = tf.sigmoid(tf.matmul(tf.nn.sigmoid(tf.matmul(x, weights1) + biases1), weights2) + biases2)
-# pred = tf.add(tf.matmul(tf.nn.relu(tf.matmul(x, weights1) + biases1), weights2), biases2)
+pred = tf.add(tf.matmul(tf.nn.relu(tf.matmul(x, weights1) + biases1), weights2), biases2)
 out_pred = tf.sigmoid(pred)
 # Define loss and optimizer
-# cost = tf.reduce_mean(tf.nn.l2_loss((pred-y)))
+)
 cost = tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(pred, y))
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
@@ -235,11 +167,8 @@ with tf.Session() as sess:
         for i in range(total_batch):
             batch_xs, batch_ys = data_next_batch(batch_size, i)
             # Run optimization op (backprop) and cost op (to get loss value)
-            # pdb.set_trace()
             sess.run(optimizer,feed_dict={x: batch_xs, y: batch_ys})
             c = cost.eval({x: batch_xs, y: batch_ys})
-            # _, c = sess.run([optimizer, cost], feed_dict={x: batch_xs,
-            #                                               y: batch_ys})
             avg_cost += c / total_batch
         # Display logs per epoch step
 
@@ -248,6 +177,7 @@ with tf.Session() as sess:
                 "{:.9f}".format(avg_cost)
     print("Optimization Finished!")
 
+    # computing train and test predicted value
     y_pred_train = out_pred.eval({x: x_train, y: y_train})
     y_pred_test = out_pred.eval({x: x_test, y: y_test})
     np.savetxt("/home/nikhil/foo.csv", y_pred_train, delimiter=",")
