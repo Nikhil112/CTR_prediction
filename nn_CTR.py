@@ -43,31 +43,41 @@ def hash_array(feature_dict, feature_num):
 		# print x_h.shape, type(x_h)
 	return x_h
 
-def feature_matrix(filename, headers_CTR, feature_dtype, useful_features, i, feature_num):	
+def feature_matrix(filename, headers_CTR, feature_dtype, i, feature_num):	
 	y_h = []
 	with open(filename, 'rb') as csvfile:
 		ctr_data = csv.reader(csvfile)
 		ctr_dict = []
-		if useful_features[i] != '0':
-			if useful_features[i] == 'J':
-				for row in ctr_data:
-					if len(row) == 61 and row[58] != 'None' and row[36] == 'cpc':
-						ctr_table = {}
-						app_cat = re.split('-|#', row[i])
-						ctr_table[headers_CTR[i]+'_'+app_cat[0]] = 1.0
+		if i == 9:
+			for row in ctr_data:
+				if len(row) == 61 and row[58] != 'None' and row[36] == 'cpc':
+					ctr_table = {}
+					app_cat = re.split('-|#', row[i])
+					ctr_table[headers_CTR[i]+'_'+app_cat[0]] = 1.0
+					ctr_dict.append(ctr_table)
+			x_h = hash_array(ctr_dict, feature_num)
+		elif i == 26:
+			for row in ctr_data:
+				if len(row) == 61 and row[58] != 'None' and row[36] == 'cpc':
+					ctr_table = {}
+					try:
+						day = datetime.datetime.strptime(row[i], '%Y-%m-%d').strftime('%A')
+						ctr_table[headers_CTR[i]+'_'+day] = 1.0
 						ctr_dict.append(ctr_table)
-				x_h = hash_array(ctr_dict, feature_num)
-			else:
-				for row in ctr_data:
-					if len(row) == 61 and row[58] != 'None' and row[36] == 'cpc':
-						if feature_dtype[i] == 'float':
-							ctr_dict.append(float(row[i]))
-						else:
-							ctr_table = {}
-							ctr_table[headers_CTR[i]+'_'+row[i]] = 1.0
-							ctr_dict.append(ctr_table)
-				x_h = hash_array(ctr_dict, feature_num)
-					
+					except:
+						print 'not a valid date'
+			x_h = hash_array(ctr_dict, feature_num)
+		else:
+			for row in ctr_data:
+				if len(row) == 61 and row[58] != 'None' and row[36] == 'cpc':
+					if feature_dtype[i] == 'float':
+						ctr_dict.append(float(row[i]))
+					else:
+						ctr_table = {}
+						ctr_table[headers_CTR[i]+'_'+row[i]] = 1.0
+						ctr_dict.append(ctr_table)
+			x_h = hash_array(ctr_dict, feature_num)
+				
 	return x_h
 
 def y_labels(filename, num_x):
@@ -84,35 +94,35 @@ def y_labels(filename, num_x):
 	y_h = y_h.reshape(num_x,1)
 	return y_h
 
-def combine_data(filename, headers_CTR, feature_dtype, useful_features):		
-	country = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 1, 15)
-	exchange = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 2, 10)
-	os_id = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 3, 5)
-	os_version = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 4, 100)
-	traffic = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 5, 2)
-	publisher = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 6, 300)
-	bundle_id = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 7, 800)
-	app_cat = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 9, 20)
-	con_type = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 13, 3)
-	device_type = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 14, 5)
-	position = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 18, 10)
-	date = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 26, 7)
-	device_js = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 29, 2)
-	dsp_id = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 32, 7)
-	adv_id = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 33, 25)
-	campaign_id = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 34, 50)
-	# creative_id = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 35, 200)
-	bid_floor = feature_matrix(filename, headers_CTR, feature_dtype, useful_features, 39, 1)
-	# feature_matrix('CTR_test.csv', headers_CTR, feature_dtype, useful_features)
+def combine_data(filename, headers_CTR, feature_dtype):		
+	country = feature_matrix(filename, headers_CTR, feature_dtype, 1, 15)
+	exchange = feature_matrix(filename, headers_CTR, feature_dtype, 2, 10)
+	os_id = feature_matrix(filename, headers_CTR, feature_dtype, 3, 5)
+	os_version = feature_matrix(filename, headers_CTR, feature_dtype, 4, 100)
+	traffic = feature_matrix(filename, headers_CTR, feature_dtype, 5, 2)
+	publisher = feature_matrix(filename, headers_CTR, feature_dtype, 6, 300)
+	bundle_id = feature_matrix(filename, headers_CTR, feature_dtype, 7, 800)
+	app_cat = feature_matrix(filename, headers_CTR, feature_dtype, 9, 20)
+	con_type = feature_matrix(filename, headers_CTR, feature_dtype, 13, 3)
+	device_type = feature_matrix(filename, headers_CTR, feature_dtype, 14, 5)
+	position = feature_matrix(filename, headers_CTR, feature_dtype, 18, 10)
+	date = feature_matrix(filename, headers_CTR, feature_dtype, 26, 7)
+	device_js = feature_matrix(filename, headers_CTR, feature_dtype, 29, 2)
+	dsp_id = feature_matrix(filename, headers_CTR, feature_dtype, 32, 7)
+	adv_id = feature_matrix(filename, headers_CTR, feature_dtype, 33, 25)
+	campaign_id = feature_matrix(filename, headers_CTR, feature_dtype, 34, 50)
+	# creative_id = feature_matrix(filename, headers_CTR, feature_dtype, 35, 200)
+	bid_floor = feature_matrix(filename, headers_CTR, feature_dtype, 39, 1)
+	# feature_matrix('CTR_test.csv', headers_CTR, feature_dtype)
 
 	x_train = np.concatenate((country, exchange, os_id, os_version, traffic, publisher, bundle_id, app_cat, 
 				con_type, device_type, position, date, device_js, dsp_id, adv_id, campaign_id, bid_floor), axis=1)
 
 	return x_train
 
-x_train = combine_data('/home/nikhil/train_day.csv', headers_CTR, feature_dtype, useful_features)
+x_train = combine_data('/home/nikhil/train_day.csv', headers_CTR, feature_dtype)
 y_train = y_labels('/home/nikhil/train_day.csv', x_train.shape[0])
-x_test = combine_data('/home/nikhil/test_day.csv', headers_CTR, feature_dtype, useful_features)
+x_test = combine_data('/home/nikhil/test_day.csv', headers_CTR, feature_dtype)
 y_test = y_labels('/home/nikhil/test_day.csv', x_test.shape[0])
 print x_train.shape, y_train.shape, x_test.shape, y_test.shape
 # Parameters
@@ -149,8 +159,8 @@ biases2 = tf.Variable(tf.random_normal([n_classes]))
 
 pred = tf.add(tf.matmul(tf.nn.relu(tf.matmul(x, weights1) + biases1), weights2), biases2)
 out_pred = tf.sigmoid(pred)
+
 # Define loss and optimizer
-)
 cost = tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(pred, y))
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
